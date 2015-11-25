@@ -1,0 +1,152 @@
+* {
+	-webkit-box-sizing: border-box;
+	-moz-box-sizing: border-box;
+	box-sizing: border-box;
+}
+a{text-decoration: none}
+html {
+	-ms-touch-action: none;
+}
+
+body,ul,li {
+	padding: 0;
+	margin: 0;
+	border: 0;
+}
+
+body {
+	font-size: 12px;
+	
+	overflow: hidden; /* this is important to prevent the whole page to bounce */
+}
+
+#tabs-bd{
+	position:absolute; 
+	width: 100%;
+	overflow: hidden;
+	top: 40px;
+	left: 0px;
+	bottom: 0px;
+	
+}
+
+.tabs-bd-scroller{
+	position: absolute;
+	top: 0px; 
+	bottom: 0px;
+	left: 0px;
+	z-index: 1;
+	-webkit-tap-highlight-color: rgba(0,0,0,0);
+	-webkit-transform: translateZ(0);
+	-moz-transform: translateZ(0);
+	-ms-transform: translateZ(0);
+	-o-transform: translateZ(0);
+	transform: translateZ(0);
+	-webkit-touch-callout: none;
+	-webkit-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+	-webkit-text-size-adjust: none;
+	-moz-text-size-adjust: none;
+	-ms-text-size-adjust: none;
+	-o-text-size-adjust: none;
+	text-size-adjust: none;
+	
+}
+
+.wrapper {
+	position: relative;
+	float: left;
+	overflow: hidden;
+
+	
+}
+
+.scroller {
+	position: absolute;
+	z-index: 1;
+	-webkit-tap-highlight-color: rgba(0,0,0,0);
+	width: 100%;
+	-webkit-transform: translateZ(0);
+	-moz-transform: translateZ(0);
+	-ms-transform: translateZ(0);
+	-o-transform: translateZ(0);
+	transform: translateZ(0);
+	-webkit-touch-callout: none;
+	-webkit-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+	-webkit-text-size-adjust: none;
+	-moz-text-size-adjust: none;
+	-ms-text-size-adjust: none;
+	-o-text-size-adjust: none;
+	text-size-adjust: none;
+
+}
+
+
+/*  选项卡CSS*/
+#tabs{height: 40px; overflow: hidden; z-index: 10000}
+.tab-scroller{position: absolute; top: 0px; left: 0px; height: 40px; z-index: 10000; min-width: 100%; background-color: #f2f2f2;}
+.tab-scroller a{display: inline-block; padding: 0px 10px; height: 40px; line-height: 40px; font-size: 1.2em; color: #333; float: left;}
+.tab-scroller a.active{border-bottom: 1px solid green; color: green; font-weight: 600;}
+
+.pullDownTip{height: 60px; padding: 10px 0px; position: absolute; top: 0px;  width: 100%;  text-align:center; display: none }
+
+.pullDownTip span.ico{display: inline-block; width: 35px; height: 35px; background-image: url(ico2.png); background-size: 35px 35px;-webkit-background-size: 35px 35px; }
+.pullDownTip span.ico i{display: inline-block; width: 35px; height: 35px; background-image: url(ico1.png); -webkit-background-size: 35px 35px;background-size: 35px 35px;}
+.pullDownTip span.tip{ padding-left: 15px; line-height: 20px; font-size: 14px; display: inline-block; height: 40px;  text-align: left;}
+.pullDownTip span.tip b{display: block;}
+.pullDownTip span.tip i{display: block; font-size: 12px; color: #999; font-style: normal;}
+
+.pullUpTip{height: 45px; padding: 10px 0px; padding-bottom: 5px; position: absolute; bottom: 0px; left: 0px;  width: 100%;  text-align:center; display: none}
+.pullUpTip span.ico{display:inline-block; width: 30px; height: 30px; background-image: url(pull-icon@2x.png); -webkit-background-size: 30px;
+background-size: 30px; transform:rotate(180deg); transition-duration:1s;}
+.pullUpTip span.ico.loading{background-position: 0 -30px; transition-duration:0s;  -webkit-animation:loadingFrame 2s linear infinite;animation:loadingFrame 2s linear infinite;}
+.pullUpTip span.tip{ display: inline-block; vertical-align: top; padding-left: 10px;  line-height: 30px; font-size: 14px;  height: 30px;  text-align: left;}
+
+@-webkit-keyframes loadingFrame {
+    0%{
+        -webkit-transform: rotate(0deg);
+    }
+    100%{
+        -webkit-transform: rotate(360deg);
+    }
+}
+keyframes loadingFrame{
+	0%{
+        -webkit-transform: rotate(0deg);
+    }
+    100%{
+        -webkit-transform: rotate(360deg);
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

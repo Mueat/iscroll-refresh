@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimum-scale=1.0, maximum-scale=1.0">
+
+<title>iScroll demo: probe</title>
+<link  rel='stylesheet' type='text/css' href='scroll.css'>
+<!--源码-->
+<script type="text/javascript" src="../iscroll-probe.js"></script>
+<script type="text/javascript" src="../iscroll-refresh.js"></script>
+<!--
+合并后的文件
+<script type="text/javascript" src="../iscroll-refresh.min.js"></script>
+-->
+<script type="text/javascript" src="http://apps.bdimg.com/libs/jquery/2.1.4/jquery.min.js"></script>
+<style type="text/css">
+	.scroller ul {
+		list-style: none;
+		padding: 0;
+		margin: 0;
+		width: 100%;
+		text-align: left;
+	}
+
+	.scroller li {
+		padding: 10px;
+		height: 100px;
+		border-bottom: 1px solid #ccc;
+		border-top: 1px solid #fff;
+		background-color: #fafafa;
+		font-size: 14px;
+	}
+	.scroller li img{width: 35%; padding-right: 15px; float: left; height: 80px;}
+	.scroller li div.li-body{width: 65%;float: left; }
+	.scroller li div h3{padding-top: 0px; padding-bottom: 5px; font-weight: normal; line-height: 25px; margin: 0px}
+	.scroller li div p{margin: 0px; padding: 0px}
+	.scroller li a{ color: #333}
+
+	.scroller li.loader { height: 200px; padding-top: 100px; text-align: center; border-bottom: 0px; background-color: #fff;}
+	.loader-spinningDisc {
+	  border: solid 0.5em #9b59b6;
+	  border-right-color: transparent;
+	  border-left-color: transparent;
+	  padding: 1em;
+	  width: 2em;
+	  margin: 0px auto;
+	  height: 2em;
+	  border-radius: 50%;
+	  background: #3498db;
+	  background-clip: content-box;
+	  animation: spinDisc 1.5s linear infinite;
+	}
+	@keyframes spinDisc {
+	  50% {
+	    border-top-color: #3498db;
+	    border-bottom-color: #3498db;
+	    background-color: #2ecc71;
+	  }
+	  100% {
+	    transform: rotate(1turn);
+	  }
+	}
+</style>
+
+</head>
+<body onload="loaded()">
+<div id="tabs">
+	<div class="tab-scroller">
+		<a class="active" href="#">行业资讯</a>
+		<a href="#">酒店资讯</a>
+		<a href="#">航空资讯</a>
+		<a href="#">人物访谈</a>
+		<a href="#">人物动态</a>
+		<a href="#">行业观点</a>
+	</div>
+</div>
+<div style="clear:both"></div>
+<div id="tabs-bd">
+	<div class="tabs-bd-scroller">
+		<div class="wrapper" ><div class="scroller" style="background-color: #dedede;"><ul><li class="loader"><div class="loader-spinningDisc"></div></li></ul></div></div>
+		<div class="wrapper" ><div class="scroller" style="background-color: #f00;"><ul><li class="loader"><div class="loader-spinningDisc"></div></li></ul></div></div>
+		<div class="wrapper" ><div class="scroller" style="background-color: #00f;"><ul><li class="loader"><div class="loader-spinningDisc"></div></li></ul></div></div>
+		<div class="wrapper" ><div class="scroller" style="background-color: #333;"><ul><li class="loader"><div class="loader-spinningDisc"></div></li></ul></div></div>
+		<div class="wrapper" ><div class="scroller" style="background-color: #f99;"><ul><li class="loader"><div class="loader-spinningDisc"></div></li></ul></div></div>
+		<div class="wrapper" ><div class="scroller" style="background-color: #ff0;"><ul><li class="loader"><div class="loader-spinningDisc"></div></li></ul></div></div>
+	</div>
+</div>
+
+
+</body>
+</html>
+
+<script type="text/javascript">
+
+var categorys = [17,18,19,2,14,15]; //每个类别的ID号
+var ir;
+
+function loaded () {
+	ir = new iScrollRefresh('tabs','tabs-bd');
+	ir.setDownAction(pullDown); //下拉刷新取数据函数
+	ir.setUpAction(pullUp); //上拉加载取数据函数
+	ir.slide(slide); //左右滑动的回调函数
+}
+
+function pullDown(param){
+	/*
+	param.scroll  当前滚动的ISCROLL对象
+	param.index   当前页面的索引，从0开始
+	param.lastUpdate 上一次刷新的时间
+	*/
+	var index = param.index;
+	$.get('/test/refresh',function(data){
+		data = $.parseJSON(data);
+		if(parseInt(data.code) == 200){
+			
+			for(var i=0;i<data.data.length;i++){
+				var art = data.data[i];
+				var html = parseHtml(art);
+				$('ul').eq(index).prepend(html);
+			}
+			ir.pullDownCallBack(param); //这个一定要写，是隐藏上拉刷新提示用得
+		}else{
+			ir.pullDownCallBack(param,1); //后面的1代表没有更新的数据了，不传的话，还可以继续下拉
+		}
+
+	})
+
+};
+
+function pullUp(param){
+	/*
+	param.scroll  当前滚动的ISCROLL对象
+	param.index   当前页面的索引，从0开始
+	param.lastUpdate 上一次刷新的时间
+	param.page  当前已经加载的页数
+	*/
+	var index = param.index;
+	var page = param.page;
+
+	$.get('/test/load',{category_id:categorys[index],page:page},function(data){
+		data = $.parseJSON(data);
+		if(parseInt(data.code) == 200){
+			
+			for(var i=0;i<data.data.length;i++){
+				var art = data.data[i];
+				var html = parseHtml(art);
+				$('ul').eq(index).append(html);
+			}
+			ir.pullUpCallBack(param); //还有数据的时候用这个
+		}else{
+			ir.pullUpCallBack(param,1); //没有更多数据的时候后面多加个1就行
+		}
+
+	})
+}
+
+function slide(index){
+	if($('ul').eq(index).find('li.loader').length >0){
+		initData(index,1);
+	}
+}
+
+function initData(index,page){
+
+	$.get('/test/load',{category_id:categorys[index],page:page},function(data){
+		data = $.parseJSON(data);
+		if(parseInt(data.code) == 200){
+			
+			for(var i=0;i<data.data.length;i++){
+				var art = data.data[i];
+				var html = parseHtml(art);
+				$('ul').eq(index).append(html);
+			}
+			
+		}
+
+		$('ul').eq(index).find('.loader').remove();
+
+		ir.setPage(index,1);  //设置当前页面的页数
+		ir.refresh(index); //刷新Iscroll
+	})
+}
+
+function parseHtml(art){
+	var html = '<li><a href="/articles/show/'+art.id+'"><img src="'+art.thumbnail+'"><div class="li-body"><h3>'+art.title+'</h3><p>'+art.created_at+'</p></div></a><div style="clear:both"></div></li>';
+	if(!art.thumbnail){
+	html = '<li><a href="/articles/show/'+art.id+'"><div class="li-body" style="width:100%"><h3>'+art.title+'</h3><p>'+art.created_at+'</p></div></a><div style="clear:both"></div></li>';
+	}
+	return html;
+}
+
+//如果在页面内有其他滑动冲突的时候可以绑定touch事件禁止iscroll的滑动
+/*
+$('#viewport').on('touchstart',function(){
+	ir.bdScroll.disable(); //禁止左右滑动
+})
+$('#viewport').on('touchend',function(){
+	ir.bdScroll.enable(); // 开启左右滑动
+})
+*/
+
+</script>
