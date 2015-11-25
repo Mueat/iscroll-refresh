@@ -28,9 +28,44 @@
 ```
 ###JS调用
 ```javascript
-  var ir = new iScrollRefresh('tabs','tabs-bd');
+  var ir = new iScrollRefresh('tabs','tabs-bd'); //第一个参数为选项卡容器ID 第二个为滚动容器  第三个参数可选参数（见下面可选配置）
 	ir.upAction = pullUp; //上拉刷新的处理函数
 	ir.downAction = pullDown; //下拉加载的处理函数
+```
+
+### 可选配置
+
+```javascript
+var config = {
+	//上拉刷新配置项
+	pullDown:{ 
+		height:60, //拉动多少像素后启动上拉刷新
+		nextTime:3600, //当没有更新的数据后，间隔多少时间才能再次下拉刷新，单位：秒
+		html:'<span class="ico"><i></i></span><span class="tip"><b>下拉刷新...</b><i></i></span>', //上拉刷新html
+		except:[], //不使用上拉刷新的索引，如传入[0,1] 则第一个和第二个选项卡下面的滚动没有上拉刷新
+		contentDown:'下拉刷新...',
+		contentHover:'释放立即刷新...',
+		contentRefresh:'正在刷新...',
+		contentNomore:'没有更多新数据了...',
+		callback:null, //上拉刷新处理函数 和 ir.upAction 一样
+		animation:null //动画处理函数 和 ir.upAnimation 一样
+	},
+	//下拉加载配置项
+	pullUp:{
+		height:40, //拉动多少像素后启动下拉加载
+		html:'<span class="ico"></span><span class="tip">上拉加载更多</span>', //下拉加载提示 html
+		except:[], //不使用下拉加载的索引，和上面一样
+		contentUp:'上拉加载更多...',
+		contentHover:'释放立即加载...',
+		contentRefresh:'正在加载...',
+		contentNomore:'没有更多数据了...',
+		callback:null, //处理函数
+		animation:null //动画函数
+	}
+};
+
+//使用自定义配置
+var ir = new iScrollRefresh('tabs','tabs-bd',config);
 ```
 
 ### 处理函数说明
