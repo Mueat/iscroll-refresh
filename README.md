@@ -1,5 +1,7 @@
 # iscroll5 多选项卡+上拉刷新+下拉加载
-
+## 效果
+![](https://github.com/Mueat/iscroll-refresh/raw/master/demo/demo1.png)
+![](https://github.com/Mueat/iscroll-refresh/raw/master/demo/demo2.png)
 ## HTML
 ```html
 <div id="tabs">
