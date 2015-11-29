@@ -50,7 +50,8 @@ var config = {
 		contentRefresh:'正在刷新...',
 		contentNomore:'没有更多新数据了...',
 		callback:null, //上拉刷新处理函数 和 ir.upAction 一样
-		animation:null //动画处理函数 和 ir.upAnimation 一样
+		animation:null, //动画处理函数 和 ir.upAnimation 一样
+		tip:null //自定义提示函数，如果不设置这个函数则插件默认根据上面的提示语来改变提示
 	},
 	//下拉加载配置项
 	pullUp:{
@@ -62,7 +63,8 @@ var config = {
 		contentRefresh:'正在加载...',
 		contentNomore:'没有更多数据了...',
 		callback:null, //处理函数
-		animation:null //动画函数
+		animation:null, //动画函数
+		tip:null //自定义提示函数，如果不设置这个函数则插件默认根据上面的提示语来改变提示
 	}
 };
 
@@ -74,6 +76,7 @@ var ir = new iScrollRefresh('tabs','tabs-bd',config);
 
 - 下拉刷新和上拉加载的回调方法中都会传入一个参数过来
 - 使用pullDownCallBack方法来隐藏下拉刷新的提示
+- 使用pullUpCallBack方法隐藏上拉加载的提示
 
 ```javascript
 
@@ -124,11 +127,14 @@ function pullDown(options){
 
 ```
 
-## 其他方法
+## 方法汇总
 
 ```javascript
-ir.upAnimation = function(options){...} //上拉刷新的动画设置
-ir.downAnimation =function(options){...} //下拉加载的动画设置
+
+ir.upAction = function(){...} // 设置上拉刷新处理方法
+ir.downAction = function(){...}  // 设置下拉加载的方法
+ir.upAnimation  = function(options){...} //设置上拉刷新动画
+ir.downAnimation =function(options){...} //设置下拉加载动画
 /* options说明
 scroll:当前iscroll控件对象
 index:当前选项卡索引
@@ -136,11 +142,38 @@ downTip:上拉刷新的div/下拉加载的div
 status:当前状态 0 下拉刷新/下拉加载  1 松开刷新/松开加载 2 刷新中/加载中 3 没有更多数据
 */
 
+ir.upTip = function(options){...} //设置上拉刷新提示
+ir.downTip = function(options){...} //设置下拉加载提示
+/* options说明
+var options = {
+	scroll:当前iscroll空间对象
+	index:当前页面索引
+	ele:提示所在dom节点
+	tip:提示语
+};
+*/
+ir.slideAction = function(index){...} //设置滑动处理方法 index:当前页面索引
+ir.config //配置
+
 ir.refresh(index) //刷新index索引下的iscroll控件
 ir.setPage(index,page) //设置index索引下加载的页数
 ir.setNoMore(index) //设置index索引没有更多新数据 （下拉刷新没有新数据的情况）
 ir.setLoadedAll(index) //设置index索引没有更多数据（上拉加载后全部数据都加载完成的情况）
 ir.slide(function(index){...},true) //选项卡切换后回调函数 index为切换后的索引，第二参数如果传了则立即执行第一个function
+
+ir.getDownTip(index) //返回指定索引的上拉提示dom节点
+ir.getUpTip(index) //返回指定索引的下拉提示dom节点
+ir.bdScroll //返回选项卡内容的iscroll控件对象
+ir.bdScrolls //返回上下滚动的iscroll控件对象数组
+ir.tabScroll //返回选项卡的iscroll控件
+```
+
+## 懒人方法
+
+```
+var ir = IR(array,length);
+// array传入选项卡的名称数组 如：['选项卡1','选项卡2','选项卡3','选项卡4','选项卡5','选项卡6'];
+// length 表示在可视屏幕内显示多少个选项卡，如设置为4，则选项卡5和6则需要滑动才能看到
 ```
 
 

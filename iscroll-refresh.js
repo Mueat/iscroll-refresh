@@ -666,6 +666,7 @@ var iScrollRefresh = function(tab_id,bd_id,parames){
 	}
 	this.bdScroll = bdScroll;
 	this.bdScrolls = bdScrolls;
+	this.tabScroll = tabsScroll;
 	return this;
 }
 
