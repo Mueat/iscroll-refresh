@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimum-scale=1.0, maximum-scale=1.0">
 
 <title>iScroll demo: probe</title>
-<link  rel='stylesheet' type='text/css' href='scroll.css'>
+<link  rel='stylesheet' type='text/css' href='iscroll-refresh.css'>
 <!--源码-->
 <script type="text/javascript" src="../iscroll-probe.js"></script>
 <script type="text/javascript" src="../iscroll-refresh.js"></script>
@@ -15,15 +15,14 @@
 -->
 <script type="text/javascript" src="http://apps.bdimg.com/libs/jquery/2.1.4/jquery.min.js"></script>
 <style type="text/css">
-	.scroller ul {
+	.ir-scroller ul {
 		list-style: none;
 		padding: 0;
 		margin: 0;
 		width: 100%;
 		text-align: left;
 	}
-
-	.scroller li {
+	.ir-scroller li {
 		padding: 10px;
 		height: 100px;
 		border-bottom: 1px solid #ccc;
@@ -31,42 +30,20 @@
 		background-color: #fafafa;
 		font-size: 14px;
 	}
-	.scroller li img{width: 35%; padding-right: 15px; float: left; height: 80px;}
-	.scroller li div.li-body{width: 65%;float: left; }
-	.scroller li div h3{padding-top: 0px; padding-bottom: 5px; font-weight: normal; line-height: 25px; margin: 0px}
-	.scroller li div p{margin: 0px; padding: 0px}
-	.scroller li a{ color: #333}
+	.ir-scroller li img{width: 35%; padding-right: 15px; float: left; height: 80px;}
+	.ir-scroller li div.li-body{width: 65%;float: left; }
+	.ir-scroller li div h3{padding-top: 0px; padding-bottom: 5px; font-weight: normal; line-height: 25px; margin: 0px}
+	.ir-scroller li div p{margin: 0px; padding: 0px}
+	.ir-scroller li a{ color: #333}
 
-	.scroller li.loader { height: 200px; padding-top: 100px; text-align: center; border-bottom: 0px; background-color: #fff;}
-	.loader-spinningDisc {
-	  border: solid 0.5em #9b59b6;
-	  border-right-color: transparent;
-	  border-left-color: transparent;
-	  padding: 1em;
-	  width: 2em;
-	  margin: 0px auto;
-	  height: 2em;
-	  border-radius: 50%;
-	  background: #3498db;
-	  background-clip: content-box;
-	  animation: spinDisc 1.5s linear infinite;
-	}
-	@keyframes spinDisc {
-	  50% {
-	    border-top-color: #3498db;
-	    border-bottom-color: #3498db;
-	    background-color: #2ecc71;
-	  }
-	  100% {
-	    transform: rotate(1turn);
-	  }
-	}
+	
 </style>
 
 </head>
 <body onload="loaded()">
-<div id="tabs">
-	<div class="tab-scroller">
+
+<div id="ir-tabs-wrapper">
+	<div class="ir-tabs-scroller">
 		<a class="active" href="#">行业资讯</a>
 		<a href="#">酒店资讯</a>
 		<a href="#">航空资讯</a>
@@ -76,16 +53,17 @@
 	</div>
 </div>
 <div style="clear:both"></div>
-<div id="tabs-bd">
-	<div class="tabs-bd-scroller">
-		<div class="wrapper" ><div class="scroller" style="background-color: #dedede;"><ul><li class="loader"><div class="loader-spinningDisc"></div></li></ul></div></div>
-		<div class="wrapper" ><div class="scroller" style="background-color: #f00;"><ul><li class="loader"><div class="loader-spinningDisc"></div></li></ul></div></div>
-		<div class="wrapper" ><div class="scroller" style="background-color: #00f;"><ul><li class="loader"><div class="loader-spinningDisc"></div></li></ul></div></div>
-		<div class="wrapper" ><div class="scroller" style="background-color: #333;"><ul><li class="loader"><div class="loader-spinningDisc"></div></li></ul></div></div>
-		<div class="wrapper" ><div class="scroller" style="background-color: #f99;"><ul><li class="loader"><div class="loader-spinningDisc"></div></li></ul></div></div>
-		<div class="wrapper" ><div class="scroller" style="background-color: #ff0;"><ul><li class="loader"><div class="loader-spinningDisc"></div></li></ul></div></div>
+<div id="ir-bd-wrapper">
+	<div class="ir-bd-scroller">
+		<div class="ir-wrapper" ><div class="ir-scroller" ></div></div>
+		<div class="ir-wrapper" ><div class="ir-scroller" ></div></div>
+		<div class="ir-wrapper" ><div class="ir-scroller" ></div></div>
+		<div class="ir-wrapper" ><div class="ir-scroller" ></div></div>
+		<div class="ir-wrapper" ><div class="ir-scroller" ></div></div>
+		<div class="ir-wrapper" ><div class="ir-scroller" ></div></div>
 	</div>
 </div>
+
 
 
 </body>
@@ -97,10 +75,16 @@ var categorys = [17,18,19,2,14,15]; //每个类别的ID号
 var ir;
 
 function loaded () {
-	ir = new iScrollRefresh('tabs','tabs-bd');
-	ir.setDownAction(pullDown); //下拉刷新取数据函数
-	ir.setUpAction(pullUp); //上拉加载取数据函数
-	ir.slide(slide); //左右滑动的回调函数
+	
+	$('.ir-scroller').each(function(index, el) {
+		$(this).append('<div class="loader"><div class="line-scale"><div></div><div></div><div></div><div></div><div></div></div><div style="margin-top:15px">加载中...</div></div>');
+	});
+	ir = new iScrollRefresh('#ir-tabs-wrapper','#ir-bd-wrapper');
+	
+	//ir = IR(['选项卡1','选项卡2','选项卡3','选项卡4','选项卡5','选项卡6','选项卡7','选项卡8'],4)
+	ir.downAction = pullDown; //下拉刷新取数据函数
+	ir.upAction = pullUp; //上拉加载取数据函数
+	ir.slideAction = slide; //左右滑动的回调函数
 }
 
 function pullDown(param){

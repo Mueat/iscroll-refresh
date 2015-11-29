@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimum-scale=1.0, maximum-scale=1.0">
+	<title>Document</title>
+	<style type="text/css">
+	* {-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;}
+	a{text-decoration: none}
+	html {-ms-touch-action: none;}
+	body,ul,li {padding: 0;margin: 0;border: 0;}
+	body {overflow: hidden; }
+	/*选项卡CSS*/
+	#ir-tabs-wrapper{height: 40px; overflow: hidden; z-index: 10000}
+	.ir-tabs-scroller{position: absolute; top: 0px; left: 0px; height: 40px; z-index: 10000; min-width: 100%; background-color: #f2f2f2;}
+	.ir-tabs-scroller a{display: inline-block; padding: 0px 10px; height: 40px; line-height: 40px; font-size: 14px; overflow: hidden; color: #333; float: left; text-align: center;}
+	.ir-tabs-scroller a.active{border-bottom: 1px solid green; color: green; font-weight: 600;}
+
+	/*选项卡下面的内容的CSS*/
+	#ir-bd-wrapper{position:absolute; width: 100%;overflow: hidden;top: 40px;left: 0px;bottom: 0px;}
+	.ir-bd-scroller{position: absolute;top: 0px; bottom: 0px;left: 0px;z-index: 1;}
+	.ir-wrapper {position: relative;float: left;overflow: hidden;}
+	.ir-scroller {position: absolute;z-index: 1;width: 100%;background-color: #fff;}
+	</style>
+</head>
+<body>
+	<div id="ir-tabs-wrapper"> <!-- iscroll容器 这个宽度应该为100%-->
+	    <div class="ir-tabs-scroller"> <!-- iscroll 滚动区域 这个宽度根据选项卡大小而定-->
+	        <a class="active" href="#">选项卡1</a>
+	        <a href="#">选项卡2</a>
+	        <a href="#">选项卡3</a>
+	        <a href="#">选项卡4</a>
+	        <a href="#">选项卡5</a>
+	        <a href="#">选项卡6</a>
+	    </div>
+	</div>
+	<div style="clear:both"></div>
+	<div id="ir-bd-wrapper"> <!-- iscroll容器 这个宽度为100%-->
+	    <div class="ir-bd-scroller"> <!-- iscroll 滚动区域 这个宽度根据下面的页数而定-->
+	        <div class="ir-wrapper" ><div class="ir-scroller" ></div></div>
+	        <div class="ir-wrapper" ><div class="ir-scroller" ></div></div>
+	        <div class="ir-wrapper" ><div class="ir-scroller" ></div></div>
+	        <div class="ir-wrapper" ><div class="ir-scroller" ></div></div>
+	        <div class="ir-wrapper" ><div class="ir-scroller" ></div></div>
+	        <div class="ir-wrapper" ><div class="ir-scroller" ></div></div>
+	    </div>
+	</div>
+</body>
+</html>
+<script type="text/javascript" src="iscroll-probe.js"></script>
+<script type="text/javascript">
+	var tabWrapper = document.getElementById('ir-tabs-wrapper');
+	var tabElements = tabWrapper.querySelector('.ir-tabs-scroller').children;
+	var tabWidth = 0,tagName;
+	for(var i = 0; i<tabElements.length;i++){
+	    tabWidth += tabElements[i].offsetWidth; //把每个选项卡的宽度相加
+	    tabElements[i].style.width = tabElements[i].offsetWidth+'px'; //防止选项卡宽度设为百分比的情况
+	    tagName = tabElements[i].tagName; //获取选项卡的标签名
+	}
+	tabWidth+=1; //防止宽度溢出导致最后一个选项卡到下一行的情况
+	tabWrapper.querySelector('.ir-tabs-scroller').style.width = tabWidth+'px'; //设置滚动区域的宽度
+	var tabsScroll = new IScroll(tabWrapper, { scrollX: true, scrollY:false, snap:tagName, tap:true }); //设置左右滑动，并且每次滑动按选项卡的大小来滑动的
+</script>

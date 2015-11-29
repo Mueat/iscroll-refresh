@@ -13,8 +13,9 @@ var iScrollRefresh = function(tab_id,bd_id,parames){
 			contentHover:'释放立即刷新...',
 			contentRefresh:'正在刷新...',
 			contentNomore:'没有更多新数据了...',
-			callback:null,
-			animation:null
+			callback:null, //回调函数
+			animation:null, //自定义动画函数
+			tip:null //自定义提示函数
 		},
 		pullUp:{
 			height:40,
@@ -24,188 +25,228 @@ var iScrollRefresh = function(tab_id,bd_id,parames){
 			contentHover:'释放立即加载...',
 			contentRefresh:'正在加载...',
 			contentNomore:'没有更多数据了...',
-			callback:null,
-			animation:null
+			callback:null, //回调函数
+			animation:null, //自定义动画函数
+			tip:null //自定义提示函数
 		},
-
 		tabs:'tabs',
 		tabs_bd:'tabs-bd',
 		slide:null
 	};
 	var _this = this;
-
+    _this.pageX = 0;
 	var pullDownStatus = false; //是否开始下拉刷新
 	var pd_height = config.pullDown.height; //下拉多少长度后开始刷新
 	var pullDownHtml = config.pullDown.html;
 	var pullDownLoading = []; //正在加载中的数组
-
 	var pullUpStatus = false;
 	var pd_pullUpHeight = config.pullUp.height;
 	var pullUpHtml = config.pullUp.html;
 	var pullUpLoading = [];
-
 	var tabsScroll;//选项卡的滚动对象
 	var tabsBdScrollers = [];
 	var tabElements;
-
 	var bdScroll;
-	var bdWidth;
+	var bdWidth,bdHeight;
 	var bdScrolls = [];
-
-	var bdMoving = false;  //选项卡内容是否在横向滚动
+	var bdMoving = false;  //是否在横向滚动
+	var scrollMoving = false; //是否在上下滚动
 	var scrollStartY,scrollStartX,scrollStartTime,noMore,lastUpdate,allowPullDown,allowPullUp,loadedAll;
+	var downTipClassName = 'ir-down-tip',upTipClassName = 'ir-up-tip'
+
 	function createScroll(){
 
 		/*计算选项卡的宽度并初始化scroll*/
-		tabElements = document.getElementById(config.tabs).getElementsByTagName('div')[0].getElementsByTagName('a');
-		var tabWidth = 0;
+		
+		tabElements = _this.tabScroller.children;
+		var tabWidth = 0,tagName;
 		for(var i = 0; i<tabElements.length;i++){
 			tabWidth += tabElements[i].offsetWidth;
+			tabElements[i].style.width = tabElements[i].offsetWidth+'px';
+			tagName = tabElements[i].tagName;
 		}
 		tabWidth+=1;
-		document.getElementById(config.tabs).getElementsByTagName('div')[0].style.width = tabWidth+'px';
-		tabsScroll = new IScroll('#'+config.tabs, { scrollX: true, scrollY:false, snap:'a', click:true });
+		_this.tabScroller.style.width = tabWidth+'px';
+		tabsScroll = new IScroll(_this.tabWrapper, { scrollX: true, scrollY:false, snap:tagName, tap:true });
 
-		var swiper = document.getElementById(config.tabs_bd).getElementsByTagName('div')[0];
-		bdWidth = document.getElementById(config.tabs_bd).offsetWidth;
-		var bdHeight = document.getElementById(config.tabs_bd).offsetHeight;
-		var warppers = swiper.getElementsByClassName('wrapper');
+		var swiper = _this.bdWrapper.children[0];
+		bdWidth = _this.bdWrapper.offsetWidth;
+		bdHeight = _this.bdWrapper.offsetHeight;
+		var warppers = swiper.children;
+		
 		swiper.style.width = bdWidth*warppers.length + 'px';
+
 		for(i = 0; i<warppers.length;i++){
 			warppers[i].style.width = bdWidth+'px';
-			warppers[i].style.height = bdHeight+'px'
-			var warpperId = warppers[i].id || 'scroll-warpper-'+i;
-			warppers[i].id = warpperId;
-			tabElements[i].setAttribute('href','#'+warpperId);
-			tabElements[i].id = 'tab-'+warpperId;
+			warppers[i].style.height = bdHeight+'px';
+			warppers[i].children[0].style.minHeight = bdHeight + 'px';
+			bdScrolls[i] = new IScroll(warppers[i], { probeType: 3, tap:true});
 
-			bdScrolls[i] = new IScroll('#'+warpperId, { probeType: 3, click:true});
+			//添加下拉刷新DIV
 			var pullDownDiv = document.createElement('div');
-			pullDownDiv.className = 'pullDownTip';
+			pullDownDiv.className = downTipClassName;
 			pullDownDiv.innerHTML = pullDownHtml;
 			warppers[i].appendChild(pullDownDiv);
 
+			//添加上拉加载DIV
 			var pullUpDiv = document.createElement('div');
-			pullUpDiv.className = 'pullUpTip';
+			pullUpDiv.className = upTipClassName;
 			pullUpDiv.innerHTML = pullUpHtml;
 			warppers[i].appendChild(pullUpDiv);
 			
+			//绑定iscroll事件
 			bdScrolls[i].on('scrollStart', scrollStartHandler);
 			bdScrolls[i].on('scroll', scrollMoveHandler);
 			bdScrolls[i].on('scrollEnd', scrollEndHandler);
 
+			//设置正在加载标识为false
 			pullDownLoading[i] = false;
-			
+			pullUpLoading[i] = false;
 		}
 
-		bdScroll = new IScroll('#'+config.tabs_bd, { scrollX: true, scrollY:false, momentum: false, snap:true });
-		//bdScroll.on('scrollStart', bdStartHandler);
-		//bdScroll.on('scroll', bdMoveHandler);
+		bdScroll = new IScroll(_this.bdWrapper, { scrollX: true, scrollY:false, momentum: false, snap:true });
+		
 		bdScroll.on('scrollEnd',bdEndHandler);
+
 		initTab();
 
 	}
-
+	_this.index = function(current, obj){ 
+		for (var i = 0; i < obj.length; i++) { 
+			if (obj[i] == current) { 
+				return i; 
+			} 
+		} 
+	} 
+	//初始化点击选项卡的事件
 	function initTab(){
-		//初始化点击选项卡的事件 和 下方滑动改变选项卡事件
 		for(var i = 0; i<tabElements.length;i++){
-			
-			tabElements[i].addEventListener('click',function(event){
+			tabElements[i].addEventListener('tap',function(event){
 				event.preventDefault();
 				var target = event.target || event.srcElement;
-				var index = target.getAttribute('href').replace('#scroll-warpper-','');
+				var index = _this.index(target,tabElements);
 				bdScroll.goToPage(parseInt(index),0,500);
 			},false)
 		}
-
 		
 	}
 
 
-	function setTop(that,num){
-		jelle(that.scroller).animate({top:'0px'},500);
+	function setTop(scroll,num){
+		//设置滚动scroller回到顶部
+		jelle(scroll.scroller).animate({top:num+'px'},500);
 	}
 
-	function setPullDownTip(that,tip){
-		//设置提示
-		getPullDownTip(that).querySelector('.tip b').innerHTML = tip;
-	}
-
-	function setRotate(that,flag){
-		//设置旋转动画
-		if(_this.downAnimation){
+	function setPullDownTip(scroll,tip){
+		//设置下拉刷新提示 TODO 自定义下拉刷新提示方法
+		if(typeof(_this.downTip) == 'function'){
 			var parame = {
-				scroll:that,
+				scroll:scroll,
 				index:bdScroll.currentPage.pageX,
-				downTip:getPullDownTip(that),
+				ele:getPullDownTip(scroll),
+				tip:tip
+			};
+			_this.downTip(parame);
+			return;
+		};
+		getPullDownTip(scroll).querySelector('.tip b').innerHTML = tip;
+	}
+
+	function setRotate(scroll,flag){
+		//设置下拉刷新旋转动画
+		if(_this.downAnimation){
+			//如果自定义了旋转动画 则调用自定义的旋转动画
+			var parame = {
+				scroll:scroll,
+				index:bdScroll.currentPage.pageX,
+				ele:getPullDownTip(scroll),
 				status:flag
 			}
 			_this.downAnimation(param);
 			return;
-		}
+		};
 		if(flag == 0){
-			var rotate = that.y/pd_height*180;
-			getPullDownTip(that).querySelector('.ico i').style.transform = 'rotate('+rotate+'deg)';
+			var rotate = scroll.y/pd_height*180;
+			getPullDownTip(scroll).querySelector('.ico i').style.transform = 'rotate('+rotate+'deg)';
 		}
 	}
 
-	function getPullDownTip(that){
-
-		return that.wrapper.querySelector('.pullDownTip');
+	function getPullDownTip(scroll){
+		return scroll.wrapper.querySelector('.'+downTipClassName);
 	}
 
-	function setPullUpTip(that,tip){
-		getPullUpTip(that).querySelector('.tip').innerHTML = tip;
-	}
-	function setUpRotate(that,flag){
-		if(_this.upAnimation){
+	function setPullUpTip(scroll,tip){
+		//设置下拉刷新提示 TODO 自定义下拉刷新提示方法
+		if(typeof(_this.upTip) == 'function'){
 			var parame = {
-				scroll:that,
+				scroll:scroll,
 				index:bdScroll.currentPage.pageX,
-				downTip:getPullUpTip(that),
+				ele:getPullUpTip(scroll),
+				tip:tip
+			};
+			_this.upTip(parame);
+			return;
+		};
+		getPullUpTip(scroll).querySelector('.tip').innerHTML = tip;
+	}
+	//上拉刷新动画
+	function setUpRotate(scroll,flag){
+		if(_this.upAnimation){
+			//如果自定义了上拉刷新动画，则调用自定义的函数
+			var parame = {
+				scroll:scroll,
+				index:bdScroll.currentPage.pageX,
+				ele:getPullUpTip(scroll),
 				status:flag
 			}
 			_this.upAnimation(param);
 			return;
 		}
 
-		//设置旋转动画
+		//默认旋转动画
 		var rotate = 180;
 		if(flag == 0){
-			getPullUpTip(that).querySelector('.ico').className = 'ico';
-			getPullUpTip(that).querySelector('.ico').style.transform = 'rotate('+rotate+'deg)';
+			getPullUpTip(scroll).querySelector('.ico').className = 'ico';
+			getPullUpTip(scroll).querySelector('.ico').style.transform = 'rotate('+rotate+'deg)';
 		}else if(flag == 1){
 			rotate = 0;
-			getPullUpTip(that).querySelector('.ico').className = 'ico';
-			getPullUpTip(that).querySelector('.ico').style.transform = 'rotate('+rotate+'deg)';
+			getPullUpTip(scroll).querySelector('.ico').className = 'ico';
+			getPullUpTip(scroll).querySelector('.ico').style.transform = 'rotate('+rotate+'deg)';
 		}else if(flag == 2){
-			getPullUpTip(that).querySelector('.ico').className = 'ico loading';
+			getPullUpTip(scroll).querySelector('.ico').className = 'ico loading';
 		}
 		
 		
 	}
 
-	function getPullUpTip(that){
+	function getPullUpTip(scroll){
 
-		return that.wrapper.querySelector('.pullUpTip');
+		return scroll.wrapper.querySelector('.'+upTipClassName);
 	}
 
 	//判断是否可以上拉刷新
 	function pullDownInit(scroll){
 		allowPullDown = true;
+		//如果当前页面正在刷新中...
 		if(pullDownLoading[bdScroll.currentPage.pageX]) return;
+		getPullDownTip(scroll).style.display = 'none'; //先隐藏掉
+		//如果当前页面已经滚动的距离超过了80（防止快速滚动导致上拉刷新问题）
 		if(scrollStartY < -80){
 			allowPullDown = false;
-		}
-		for(var i = 0; i<config.pullDown.except.length;i++){
-			if(config.pullDown.except[i] == bdScroll.currentPage.pageX) allowPullDown = false;
-		}
-		if(!allowPullDown) {
-			getPullDownTip(scroll).style.display = 'none';
 			return;
 		}
+		//判断此滚动是否设置了不允许上拉刷新
+		for(var i = 0; i<config.pullDown.except.length;i++){
+			if(config.pullDown.except[i] == bdScroll.currentPage.pageX) {
+				allowPullDown = false;
+				return;
+			}
+		}
+		
 
-		noMore = scroll.scroller.getAttribute('noMore')?1:0;
+		noMore = scroll.scroller.getAttribute('noMore')?1:0; //是否可以继续刷新
+
+		/*判断当前时间和最后更新时间*/
 		var nowtime = (new Date()).getTime();
 		scrollStartTime = nowtime;
 		
@@ -213,53 +254,57 @@ var iScrollRefresh = function(tab_id,bd_id,parames){
 		var disnow = parseInt( ( nowtime- lastUpdate)/1000 );
 
 		if(noMore === 1 && disnow <= config.pullDown.nextTime){
-			getPullDownTip(scroll).style.display = 'none';
+			//如果设置了不能刷新并且设置没有过期
 			allowPullDown = false;
-			scroll.scroller.setAttribute('noMore',0);
-		}else{
-			setPullDownTip(scroll,config.pullDown.contentDown);
-			getPullDownTip(scroll).style.display = 'block';
-			allowPullDown = true;
-			var lastDate = new Date(parseInt(lastUpdate));
-			var lastDateStr = (lastDate.getMonth()+1)+'/'+lastDate.getDate()+' '+lastDate.getHours()+':'+lastDate.getMinutes()+':'+lastDate.getSeconds();
-			getPullDownTip(scroll).querySelector('.tip i').innerHTML = '最后刷新：'+lastDateStr;
+			return;
 		}
+
+		getPullDownTip(scroll).style.display = 'block';
+		//如果可以刷新的情况
+		if(noMore == 1) scroll.scroller.setAttribute('noMore',0); //设置为可以刷新
+		setPullDownTip(scroll,config.pullDown.contentDown);//设置正在刷新文字
+		allowPullDown = true;
+		//设置最后更新时间
+		var lastDate = new Date(parseInt(lastUpdate));
+		var lastDateStr = (lastDate.getMonth()+1)+'/'+lastDate.getDate()+' '+lastDate.getHours()+':'+lastDate.getMinutes()+':'+lastDate.getSeconds();
+		getPullDownTip(scroll).querySelector('.tip i').innerHTML = '最后刷新：'+lastDateStr;
 	}
 
+	//判断是否可以下拉加载
 	function pullUpInit(scroll){
 		allowPullUp = true;
+		//正在加载中...
+		if(pullUpLoading[bdScroll.currentPage.pageX]) return;
+
+		getPullUpTip(scroll).style.display = 'none';
+		//当前滚动距离到底部超过了 80 则设置为不能上拉加载
 		if(scrollStartY > scroll.maxScrollY + 80) {
 			allowPullUp = false;
 			return;
 		}
-		if(pullUpLoading[bdScroll.currentPage.pageX]) return;
-
 		for(var i = 0; i<config.pullUp.except.length;i++){
-			if(config.pullUp.except[i] == bdScroll.currentPage.pageX) allowPullUp = false;
+			if(config.pullUp.except[i] == bdScroll.currentPage.pageX) {
+				allowPullUp = false;
+				return;
+			}
 		}
-		if(!allowPullUp) {
-			getPullUpTip(scroll).style.display = 'none';
-			return;
-		}
-
+		
+		//如果已经全部加载完成，则不再显示上拉加载
 		loadedAll = scroll.scroller.getAttribute('loadedAll')?1:0;
 		if(loadedAll){
-			getPullUpTip(scroll).style.display = 'none';
 			allowPullUp = false;
-		}else{
-			getPullUpTip(scroll).style.display = 'block';
-			setPullUpTip(scroll,config.pullUp.contentUp);
-			allowPullUp = true;
+			return;
 		}
+		getPullUpTip(scroll).style.display = 'block';
+		setPullUpTip(scroll,config.pullUp.contentUp);
 
 	}
 	var isFast = true;
 	function isFastScroll(){
-		if(!isFast) return false;
-		
+		if(!isFast) return false; //拉动时间已经超过了200ms的情况
 		var nowtime = (new Date()).getTime();
 		var dsTime = nowtime - scrollStartTime;
-		if(dsTime > 200){
+		if(dsTime > 200){ //如果拉动的时间小于200ms 则判断为快速刷新
 			isFast = false;
 		}else{
 			isFast = true;
@@ -268,78 +313,102 @@ var iScrollRefresh = function(tab_id,bd_id,parames){
 	}
 
 	function bdEndHandler(){
-		var index = Math.abs(this.x)/bdWidth;
-		tabsScroll.scrollToElement('#tab-scroll-warpper-'+index,700,true);
-		document.getElementById(config.tabs).querySelector('.tab-scroller .active').className = '';
-		document.getElementById('tab-scroll-warpper-'+index).className = 'active';
-		if(config.slide){
-			config.slide(bdScroll.currentPage.pageX);
+		var  index = _this.pageX = this.currentPage.pageX;
+		//选项卡滚动到当前索引的位置
+		tabsScroll.scrollToElement(_this.tabScroller.children[index],700,true); 
+		//设置class
+		_this.tabScroller.querySelector('.active').className = '';
+		_this.tabScroller.children[index].className = 'active';
+		//如果定义了滑动函数
+		if(_this.slideAction){
+			_this.slideAction(bdScroll.currentPage.pageX);
 		}
+		//启用当前页面的上下滚动（在滑动的时候是禁止上下滚动的，所以这里滑动完成后要启用）;
 		bdScrolls[bdScroll.currentPage.pageX].enable();
 		
 	}
-	var scrollMoving = false;
+
+	
 	function scrollStartHandler(){
-		
+		//初始化上下滚动和左右滑动标志位
 		scrollMoving = false;
 		bdMoving = false;
+
 		scrollStartY = this.y;
 		scrollStartX = bdScroll.x;
+		//设置是否可以上拉刷新或下拉加载
 		pullDownInit(this);
 		pullUpInit(this);
 	}
 
 	function scrollMoveHandler () {
-
-		
+		/*
+		//如果是左右滑动，则禁止上下滚动，并将页面还原到滚动前高度
 		if(bdMoving) {
 			this.disable();
 			this.scrollTo(0,scrollStartY);
 			return;
 		}
+		//如果是上下滚动 则禁止左右滚动，并将页面还原到滑动前的状态
 		if(scrollMoving){
 			bdScroll.disable();
 			bdScroll.goToPage(bdScroll.currentPage.pageX,0);
 		}
+		*/
+		//如果没有判断出是左右滑动还是上下滚动的情况
+
+		//如果是快速滑动
+		if(isFastScroll()) return;
+
+		//判断左右滑动还是上下滚动的情况
 		if(!scrollMoving && !bdMoving){
-			var moveX = Math.abs(bdScroll.x - scrollStartX);
-			var moveY = Math.abs(this.y- scrollStartY);
+			var moveX = Math.abs(bdScroll.x - scrollStartX); //左右移动的距离
+			var moveY = Math.abs(this.y- scrollStartY); //上下移动的距离
+			//如果移动的距离大于5（无论是上下还是左右）
 			if(moveX > 5 || moveY > 5){
-				if(moveX > moveY){
+				if(moveX > moveY){ 
+					//左右移动距离比上下移动距离大，则禁止上下滚动，并将页面还原到滚动前高度
+					this.disable();
+					this.scrollTo(0,scrollStartY);
 					bdMoving = true;
+					return;
 				}else{
+					//禁止左右滚动，并将页面还原到滑动前的状态
+					bdScroll.disable();
+					bdScroll.goToPage(bdScroll.currentPage.pageX,0);
 					scrollMoving = true;
 				}
 			}
 		}
-		 //如果开启了
 		
-		if(isFastScroll()) return;
 
 		if(allowPullDown){
 			
-			
+			//允许下拉刷新的情况
 			if(this.y>=pd_height && !pullDownStatus && this.directionY == -1){ 
-				//如果下拉的高度大于等于设定的高度（默认60）
-				pullDownStatus = true; //设置为可以下拉刷新 TODO 判断下如果已经没有更多新数据的时候 设置为false
-				setPullDownTip(this,config.pullDown.contentHover);
-				setRotate(this,1);
+				//如果下拉的高度大于等于设定的高度（默认60）并且滑动方向是向下的
+				pullDownStatus = true; //设置为可以下拉刷新 
+				setPullDownTip(this,config.pullDown.contentHover); //设置提示（默认：松开刷新)
+				setRotate(this,1); //旋转动画设置
 			}else if(this.y<pd_height && this.y >=0 ){
 				//如果没到达到指定下拉距离的时候，设置旋转动画
 				if(this.directionY === 1){ 
 					//如果用户取消下拉刷新（实际操作：先拉下来然后手指不松开又拉上去）
+					setPullDownTip(this,config.pullDown.contentDown);
 					pullDownStatus = false;
 				}
 				if(!pullDownStatus){
-					setRotate(this,0);
+					setRotate(this,0); //设置动画
 				}else{
+					//如果是下拉刷新的情况，则设置scroller的top递增
 					this.scroller.style.top = (pd_height-this.y)+'px';
 				}
 			}
 		}
 
 		if(allowPullUp){
-
+			
+			//允许上拉加载的情况
 			if(this.y <= (this.maxScrollY - pd_pullUpHeight) && !pullUpStatus && this.directionY == 1){
 				pullUpStatus = true;
 				setPullUpTip(this,config.pullUp.contentHover);
@@ -349,6 +418,7 @@ var iScrollRefresh = function(tab_id,bd_id,parames){
 				if(this.directionY === -1){ 
 					//如果用户取消上拉加载（实际操作：先拉上去然后手指不松开又拉下来）
 					pullUpStatus = false;
+					setPullUpTip(this,config.pullUp.contentUp);
 					setUpRotate(this,0);
 				}
 				if(pullUpStatus){
@@ -362,33 +432,35 @@ var iScrollRefresh = function(tab_id,bd_id,parames){
 	}
 
 	function scrollEndHandler(){
-		bdScroll.enable();
-		this.enable();
-		bdMoving = false;
+		bdScroll.enable(); //启用左右滑动
 		var that = this;
 		if(pullDownStatus){
-			setPullDownTip(that,config.pullDown.contentRefresh);
-			setRotate(this,2);
-			var lastUpdateTime = that.scroller.getAttribute('lastupdate') || 0;
+			//如果是上拉刷新
+			setPullDownTip(that,config.pullDown.contentRefresh); //设置提示
+			setRotate(this,2); //设置动画
+			var lastUpdateTime = that.scroller.getAttribute('lastupdate'); //最后更新时间
+			if(!lastUpdateTime) lastUpdateTime = 0;
 			var param = {
 				scroll:that,
 				index:bdScroll.currentPage.pageX,
-				lastUpdate:lastUpdateTime,
+				lastUpdate:parseInt(lastUpdateTime),
 			};
 			//设置当前页面正在加载数据
 			pullDownLoading[param.index] = true;
 			pullDownAction(param);
 			
 		}else if(pullUpStatus){
+			//下拉加载
 			setPullUpTip(that,config.pullUp.contentRefresh);
 			setUpRotate(that,2);
-			var lastUpdateTime = that.scroller.getAttribute('lastupdate') || 0;
-			var page = that.scroller.getAttribute('page');
+			var lastUpdateTime = that.scroller.getAttribute('lastupdate');
+			if(!lastUpdateTime) lastUpdateTime = 0;
+			var page = that.scroller.getAttribute('page'); //已经加载的页数
 			if(!page) page = 0;
 			var param = {
 				scroll:that,
 				index:bdScroll.currentPage.pageX,
-				lastUpdate:lastUpdateTime,
+				lastUpdate:parseInt(lastUpdateTime),
 				page:parseInt(page)
 			};
 			pullUpLoading[param.index] = true;
@@ -401,25 +473,26 @@ var iScrollRefresh = function(tab_id,bd_id,parames){
 	this.pullDownCallBack = function(param,noMore){
 
 		var scroll = param.scroll;
-		
 		pullDownStatus = false;
-		scroll.refresh();
-		pullDownLoading[param.index] = false;
-		if(typeof(noMore) != 'undefined'){
+		pullDownLoading[param.index] = false; //设置正在刷新为false
+		if(typeof(noMore) != 'undefined'){ //如果传入了第二个参数，则设置为没有更多新数据了
 			scroll.scroller.setAttribute('noMore','1');
 			setPullDownTip(scroll,config.pullDown.contentNomore);
 			setRotate(scroll,3);
 			setTimeout(function(){
 				setTop(scroll,0);
-			},2000);
+				scroll.refresh();
+			},1000);
 		}else{
-			setPullDownTip(scroll,config.pullDown.contentDown);
-			setRotate(scroll,0);
-			setTop(scroll,0);
+			setTimeout(function(){
+				setPullDownTip(scroll,config.pullDown.contentDown);
+				setRotate(scroll,0);
+				setTop(scroll,0);
+				scroll.refresh();
+			},1000);
 		}
 		var now = (new Date()).getTime();
 		scroll.scroller.setAttribute('lastupdate',now);
-		
 		
 	}
 
@@ -428,9 +501,9 @@ var iScrollRefresh = function(tab_id,bd_id,parames){
 		var scroll = param.scroll;
 		
 		pullUpStatus = false;
-		scroll.refresh();
 		pullUpLoading[param.index] = false;
 
+		//加一页
 		var page = scroll.scroller.getAttribute('page');
 		if(!page) page = 0;
 		scroll.scroller.setAttribute('page',(parseInt(page)+1));
@@ -443,23 +516,28 @@ var iScrollRefresh = function(tab_id,bd_id,parames){
 			setTimeout(function(){
 				setTop(scroll,0);
 				setUpRotate(scroll,0);
-			},2000);
+				scroll.refresh();
+			},1000);
 		}else{
-			setPullUpTip(scroll,config.pullUp.contentUp);
-			setTop(scroll,0);
-			setUpRotate(scroll,0);
+			setTimeout(function(){
+				setPullUpTip(scroll,config.pullUp.contentUp);
+				setUpRotate(scroll,0);
+				setTop(scroll,0);
+				setUpRotate(scroll,0);
+				scroll.refresh();
+			},1000);
 		}
 		
 		
 	}
-	function pullUpAction(param){
 
+	function pullUpAction(param){
 		if(typeof(_this.upAction) == 'function'){
 			_this.upAction(param);
 		}else{
 			setTimeout(function(){
 				_this.pullUpCallBack(param,1);
-			},2000);
+			},1000);
 		}
 	}
 	function pullDownAction(param){
@@ -468,7 +546,7 @@ var iScrollRefresh = function(tab_id,bd_id,parames){
 		}else{
 			setTimeout(function(){
 				_this.pullDownCallBack(param,1);
-			},2000);
+			},1000);
 		}
 		
 	}
@@ -515,6 +593,11 @@ var iScrollRefresh = function(tab_id,bd_id,parames){
 	function init(tab,bd,conf){
 		config.tabs = tab;
 		config.tabs_bd = bd;
+		_this.tabWrapper = typeof tab == 'string' ? document.querySelector(tab) : tab;
+		_this.tabScroller = _this.tabWrapper.children[0];
+		_this.bdWrapper = typeof bd == 'string' ? document.querySelector(bd) : bd;
+		_this.bdScroller = _this.bdWrapper.children[0];
+
 		if(typeof(conf) != 'undefined'){
 			if(typeof(conf.pullDown) != 'undefined'){
 				config.pullDown.height = typeof(conf.pullDown.height) != 'undefined' ? conf.pullDown.height : config.pullDown.height;
@@ -546,10 +629,15 @@ var iScrollRefresh = function(tab_id,bd_id,parames){
 	}
 
 	init(tab_id,bd_id,parames);
+
 	this.upAction = config.pullUp.callback;
 	this.downAction = config.pullDown.callback;
 	this.upAnimation = config.pullUp.animation;
 	this.downAnimation = config.pullDown.animation;
+	this.upTip = config.pullUp.tip;
+	this.downTip = config.pullDown.tip;
+	this.slideAction = config.slide;
+	this.config = config;
 
 	this.refresh = function(index){
 		bdScrolls[index].refresh();
@@ -564,15 +652,39 @@ var iScrollRefresh = function(tab_id,bd_id,parames){
 	this.setLoadedAll = function(index){
 		bdScrolls[index].scroller.setAttribute('loadedAll',1);
 	}
+	this.getDownTip = function(index){
+		return getPullDownTip(bdScrolls[index]);
+	}
+	this.getUpTip = function(){
+		return getPullUpTip(bdScrolls[index]);
+	}
 	this.slide = function(fn,runNow){
 		config.slide = fn;
 		if(typeof(runNow) == 'undefined'){
 			fn(bdScroll.currentPage.pageX);
 		}
-		
 	}
 	this.bdScroll = bdScroll;
+	this.bdScrolls = bdScrolls;
 	return this;
+}
 
+//偷懒的自动生成选项卡
+function IR(ary,len){
+	var tabsHtml = '';
+	var tabsStyle = '';
+	var bdHtml = '';
+	var loadHtml = '<div class="loader"><div class="line-scale"><div></div><div></div><div></div><div></div><div></div></div><div style="margin-top:15px">加载中...</div></div>';
+	if(typeof(len) != 'undefined'){
+		tabsStyle = 'style="width:'+(100/len)+'%"';
+	}
+	for(var i = 0;i<ary.length;i++){
+		if(i===0) tabsHtml += '<a href="javascript:" class="active" '+tabsStyle+'>'+ary[i]+'</a>';
+		else tabsHtml += '<a href="javascript:" '+tabsStyle+'>'+ary[i]+'</a>';
+		bdHtml += '<div class="ir-wrapper" ><div class="ir-scroller" >'+loadHtml+'</div></div>';
+	}
+	var html = '<div id="ir-tabs-wrapper"><div class="ir-tabs-scroller">'+tabsHtml+'</div></div><div style="clear:both"></div><div id="ir-bd-wrapper"><div class="ir-bd-scroller">'+bdHtml+'</div></div>';
+	document.body.innerHTML = html;
+	return (new iScrollRefresh('#ir-tabs-wrapper','#ir-bd-wrapper'));
 }
 
